@@ -1,7 +1,7 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   Star, TrendingUp, Clock, ExternalLink, ChevronLeft, ChevronRight,
-  GitBranch, Package, Users, Calendar, Filter, Search, Download,
+  Package, Calendar, Filter, Search, Download,
   BookmarkPlus, GitFork, Eye, Code2, FileJson, Copy, Check,
   Sun, Moon
 } from 'lucide-react';
@@ -364,7 +364,7 @@ ${repo.topics.length > 0 ? `**Topics:** ${repo.topics.map(tag => `\`${tag}\``).j
 
     const summary = selectedRepos.map(repo => {
       // Extract key insights from repo data
-      const daysSinceUpdate = Math.floor((new Date() - new Date(repo.updated_at)) / (1000 * 60 * 60 * 24));
+      const daysSinceUpdate = Math.floor((new Date().getTime() - new Date(repo.updated_at).getTime()) / (1000 * 60 * 60 * 24));
       const activityLevel = repo.stargazers_count > 1000 ? 'high' : repo.stargazers_count > 100 ? 'medium' : 'low';
       const hasTopics = repo.topics.length > 0;
       const isMaintained = daysSinceUpdate < 90; // Updated within last 3 months
@@ -384,15 +384,15 @@ ${repo.description || 'No description available'}
 ${hasTopics ? `- 🏷️ Topics: ${repo.topics.slice(0, 5).join(', ')}${repo.topics.length > 5 ? ` +${repo.topics.length - 5} more` : ''}` : ''}
 
 ## 🔧 Technical Details
-- **Repository**: [${repo.html_url}](${repo.html_url})
+- **Repository**: [\`${repo.html_url}\`](${repo.html_url})
 - **Clone Commands**:
-  \`\`\`bash
-  # HTTPS
-  git clone ${repo.clone_url}
+\`\`\`bash
+# HTTPS
+git clone ${repo.clone_url}
 
-  # SSH
-  git clone ${repo.ssh_url}
-  \`\`\`
+# SSH
+git clone ${repo.ssh_url}
+\`\`\`
 - **Default Branch**: \`${repo.default_branch}\`
 - **License**: ${repo.license ? repo.license.name : 'No license'}
 - **Repository Size**: ${repo.size ? `${(repo.size / 1024).toFixed(1)} KB` : 'Unknown'}
@@ -425,7 +425,7 @@ ${selectedRepos.sort((a, b) => b.stargazers_count - a.stargazers_count).slice(0,
 
 ### Language Distribution
 ${Object.entries(
-      selectedRepos.reduce((acc, repo) => {
+      selectedRepos.reduce((acc: Record<string, number>, repo) => {
         const lang = repo.language || 'Unknown';
         acc[lang] = (acc[lang] || 0) + 1;
         return acc;
@@ -436,8 +436,8 @@ ${Object.entries(
 ${selectedRepos
       .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
       .map(repo => `- **${repo.full_name}**: Last updated ${formatDate(repo.updated_at)}`).join('\n')}
-${selectedRepos.some(repo => (new Date() - new Date(repo.updated_at)) / (1000 * 60 * 60 * 24) < 30 ? '✅ Recent activity detected' : '📅 Older repositories') ? `
-**Recent Activity Detected**: ${selectedRepos.filter(repo => (new Date() - new Date(repo.updated_at)) / (1000 * 60 * 60 * 24) < 30).length} repositories have been updated in the last 30 days.` : ''}
+${selectedRepos.some(repo => (new Date().getTime() - new Date(repo.updated_at).getTime()) / (1000 * 60 * 60 * 24) < 30) ? `
+**Recent Activity Detected**: ${selectedRepos.filter(repo => (new Date().getTime() - new Date(repo.updated_at).getTime()) / (1000 * 60 * 60 * 24) < 30).length} repositories have been updated in the last 30 days.` : ''}
 
 ### 📊 Repository Maturity
 - **🔥 High Activity**: ${selectedRepos.filter(repo => repo.forks_count > 50 && repo.stargazers_count > 1000).length} repositories
