@@ -14,9 +14,12 @@ This application uses environment variables to configure GitHub API access. Foll
 
 | Variable | Purpose | Exposure Risk | Recommended Handling |
 |----------|---------|---------------|---------------------|
-| `VITE_GITHUB_API_BASE_URL` | GitHub API endpoint | Low (public URL) | Can be hardcoded or set via env |
-| `VITE_GITHUB_API_VERSION` | GitHub API version | Low (public info) | Can be hardcoded or set via env |
-| `VITE_GITHUB_TOKEN` | GitHub Personal Access Token | **High** if exposed | **Never commit**, use deployment env vars |
+| `VITE_GITHUB_TOKEN` | GitHub Personal Access Token (dev only) | **High** if exposed | **Development only**, never in production |
+| `VITE_APP_NAME` | Application name | Low | Safe to use |
+| `VITE_APP_VERSION` | Application version | Low | Safe to use |
+| `VITE_PER_PAGE` | Results per page | Low | Safe to use |
+
+**Security Note**: GitHub API URLs and versions are now hardcoded in the application to prevent secret exposure.
 
 ### 🚀 **Deployment Security**
 
@@ -27,17 +30,19 @@ Vite embeds all `VITE_` environment variables directly into the client-side Java
 
 #### ✅ **Correct Approach for Netlify**
 
-For secure deployment, you must handle the GitHub token at runtime, not build time:
+For secure deployment, the GitHub API configuration is now hardcoded in the application:
 
-1. **Option 1: Use the app without a token** (Recommended for public repositories)
-   - Only set these environment variables in Netlify:
-     ```
-     VITE_GITHUB_API_BASE_URL=https://api.github.com
-     VITE_GITHUB_API_VERSION=2022-11-28
-     ```
+1. **Recommended Secure Deployment**
+   - No environment variables needed for GitHub API in Netlify
+   - API base URL and version are hardcoded for security
    - This will use GitHub's public rate limits (60 requests/hour per IP)
 
-2. **Option 2: Backend proxy approach** (For higher rate limits)
+2. **Development Only**
+   - You can optionally set `VITE_GITHUB_TOKEN` for local development
+   - Never set this in production/Netlify environment
+   - The token will be embedded in client-side JavaScript if set during build
+
+3. **Higher Rate Limits Option**
    - Create a serverless function that proxies GitHub API requests
    - Store the token in Netlify environment variables (not prefixed with `VITE_`)
    - Never expose the token to client-side code

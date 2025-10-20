@@ -3,8 +3,11 @@ import {
   Star, TrendingUp, Clock, ExternalLink, ChevronLeft, ChevronRight,
   Package, Calendar, Filter, Search, Download,
   BookmarkPlus, GitFork, Eye, Code2, FileJson, Copy, Check,
-  Sun, Moon
+  Sun, Moon, LogIn
 } from 'lucide-react';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { AuthModal } from './components/AuthModal';
+import { UserMenu } from './components/UserMenu';
 
 interface Repository {
   id: number;
@@ -51,7 +54,7 @@ interface BookmarkedRepo {
   notes: string;
 }
 
-function App() {
+function AppContent() {
   const [repositories, setRepositories] = useState<Repository[]>([]);
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(false);
@@ -71,6 +74,9 @@ function App() {
   const [copiedRepo, setCopiedRepo] = useState<string | null>(null);
   const [selectedRepos, setSelectedRepos] = useState<Repository[]>([]);
   const [darkMode, setDarkMode] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
+
+  const { isAuthenticated, canUseWithoutAuth, showAuthPrompt, startUsageTimer, signInWithGoogle } = useAuth();
 
   const getDateFromDaysAgo = (days: number) => {
     const date = new Date();
@@ -172,13 +178,15 @@ function App() {
       setLoading(true);
       setError(null);
 
-      const baseUrl = import.meta.env.VITE_GITHUB_API_BASE_URL || 'https://api.github.com';
+      const baseUrl = 'https://api.github.com';
       const perPage = import.meta.env.VITE_PER_PAGE || '20';
+
+      // Note: Token should only be used in development, not in production builds
       const token = import.meta.env.VITE_GITHUB_TOKEN;
 
       const headers: HeadersInit = {
         'Accept': 'application/vnd.github.v3+json',
-        'X-GitHub-Api-Version': import.meta.env.VITE_GITHUB_API_VERSION || '2022-11-28'
+        'X-GitHub-Api-Version': '2022-11-28'
       };
 
       if (token) {
@@ -237,6 +245,20 @@ function App() {
       setRepositories(bookmarkedRepos);
     }
   }, [page, activeTab, fetchTrendingRepositories, fetchRecentRepositories, searchRepositories, bookmarks]);
+
+  useEffect(() => {
+    // Start usage timer when user interacts with the app
+    if (!isAuthenticated) {
+      startUsageTimer();
+    }
+  }, [isAuthenticated, startUsageTimer]);
+
+  useEffect(() => {
+    // Show auth modal when prompted
+    if (showAuthPrompt) {
+      setShowAuthModal(true);
+    }
+  }, [showAuthPrompt]);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -506,16 +528,32 @@ ${selectedRepos.some(repo => (new Date().getTime() - new Date(repo.updated_at).g
         <header className="pt-6 pb-6">
           <div className="flex justify-between items-center mb-4">
             <div className="flex-1"></div>
-            <button
-              onClick={() => setDarkMode(!darkMode)}
-              className={`p-2 rounded-lg transition-colors ${
-                darkMode
-                  ? 'bg-gray-800 text-yellow-400 hover:bg-gray-700'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              }`}
-            >
-              {darkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
-            </button>
+            <div className="flex items-center gap-2">
+              {!isAuthenticated && (
+                <button
+                  onClick={() => setShowAuthModal(true)}
+                  className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors ${
+                    darkMode
+                      ? 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  <LogIn className="w-4 h-4" />
+                  <span className="text-sm font-medium">Sign In</span>
+                </button>
+              )}
+              <UserMenu />
+              <button
+                onClick={() => setDarkMode(!darkMode)}
+                className={`p-2 rounded-lg transition-colors ${
+                  darkMode
+                    ? 'bg-gray-800 text-yellow-400 hover:bg-gray-700'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                {darkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+              </button>
+            </div>
           </div>
           <div className="text-center">
             <h1 className={`text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r ${
@@ -538,6 +576,13 @@ ${selectedRepos.some(repo => (new Date().getTime() - new Date(repo.updated_at).g
               {activeTab === 'search' && '🔍 Advanced search with filters'}
               {activeTab === 'bookmarks' && '📚 Your bookmarked repositories'}
             </p>
+            {!isAuthenticated && (
+              <p className={`text-xs mt-1 ${
+                darkMode ? 'text-gray-600' : 'text-gray-500'
+              }`}>
+                ⏱️ Limited time access • Sign in for unlimited use
+              </p>
+            )}
           </div>
 
           {/* Export Actions */}
@@ -1128,7 +1173,20 @@ ${selectedRepos.some(repo => (new Date().getTime() - new Date(repo.updated_at).g
           </button>
         </div>
       </nav>
+
+      {/* Auth Modal */}
+      {showAuthModal && (
+        <AuthModal onClose={() => setShowAuthModal(false)} />
+      )}
     </div>
+  );
+}
+
+function App() {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
   );
 }
 
