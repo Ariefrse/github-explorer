@@ -172,12 +172,26 @@ function App() {
       setLoading(true);
       setError(null);
 
+      const baseUrl = import.meta.env.VITE_GITHUB_API_BASE_URL || 'https://api.github.com';
+      const perPage = import.meta.env.VITE_PER_PAGE || '20';
+      const token = import.meta.env.VITE_GITHUB_TOKEN;
+
+      const headers: HeadersInit = {
+        'Accept': 'application/vnd.github.v3+json',
+        'X-GitHub-Api-Version': import.meta.env.VITE_GITHUB_API_VERSION || '2022-11-28'
+      };
+
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
       const response = await fetch(
-        `https://api.github.com/search/repositories?q=${encodeURIComponent(query)}&sort=${sort}&order=desc&page=${pageNum}&per_page=20`
+        `${baseUrl}/search/repositories?q=${encodeURIComponent(query)}&sort=${sort}&order=desc&page=${pageNum}&per_page=${perPage}`,
+        { headers }
       );
 
       if (!response.ok) {
-        throw new Error(`GitHub API Error: ${response.status}`);
+        throw new Error(`GitHub API Error: ${response.status} ${response.statusText}`);
       }
 
       const data = await response.json();
@@ -509,7 +523,7 @@ ${selectedRepos.some(repo => (new Date().getTime() - new Date(repo.updated_at).g
                 ? 'from-green-400 to-emerald-400'
                 : 'from-green-600 to-emerald-600'
             }`}>
-              DevHub Explorer
+              {import.meta.env.VITE_APP_NAME || 'DevHub Explorer'}
             </h1>
             <p className={`text-lg mt-1 font-medium ${
               darkMode ? 'text-gray-400' : 'text-gray-500'
@@ -1024,7 +1038,7 @@ ${selectedRepos.some(repo => (new Date().getTime() - new Date(repo.updated_at).g
               <button
                 onClick={handleNextPage}
                 className={`p-3 rounded-r-lg ${
-                  repositories.length < 20
+                  repositories.length < parseInt(import.meta.env.VITE_PER_PAGE || '20')
                     ? 'text-gray-300 cursor-not-allowed'
                     : 'text-gray-700 hover:text-green-600'
                 }`}
